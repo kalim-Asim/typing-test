@@ -17,7 +17,7 @@ const TypingTest: React.FC = () => {
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
-    if (startTime === null) setStartTime(Date.now()); // Start timer on first input
+    if (startTime === null) setStartTime(Date.now());
     setCurrentInput(val);
     calculateAccuracy(val);
   }
@@ -26,6 +26,9 @@ const TypingTest: React.FC = () => {
     if (e.key === " ") {
       e.preventDefault();
       checkWord();
+    }
+    if (e.key === "Enter" && currentWordIndex === words.length - 1) {
+      finishTest();
     }
   }
 
@@ -37,32 +40,45 @@ const TypingTest: React.FC = () => {
 
     if (currentWordIndex < words.length - 1) {
       setCurrentWordIndex(currentWordIndex + 1);
-    } else {
-      finishTest();
+    }
+    else {
+      finishTest()
     }
   }
 
   function calculateAccuracy(val: string) {
-    const correctChars = words[currentWordIndex].slice(0, val.length);
-    let correctCount = 0;
-    for (let i = 0; i < val.length; i++) {
-      if (val[i] === correctChars[i]) correctCount++;
-    }
-    const totalTyped = typedWords.join("").length + val.length;
-    const totalCorrect = typedWords
-      .map((word, index) => word.split("").filter((char, i) => char === words[index][i]).length)
-      .reduce((acc, val) => acc + val, 0) + correctCount;
+    const updatedWords = [...typedWords];
+    updatedWords[currentWordIndex] = val.trim();
+
+    let totalTyped = updatedWords.join("").length;
+    let totalCorrect = updatedWords
+      .map((word, index) =>
+        index === words.length - 1 
+          ? (word === words[index] ? word.length : 0)
+          : word.split("").filter((char, i) => char === words[index][i]).length
+      )
+      .reduce((acc, val) => acc + val, 0);
 
     setAccuracy(totalTyped === 0 ? 100 : Math.round((totalCorrect / totalTyped) * 100));
   }
 
   function finishTest() {
+    const updatedWords = [...typedWords];
+    updatedWords[currentWordIndex] = currentInput.trim(); 
+    setTypedWords(updatedWords);
+
+    calculateAccuracy(currentInput.trim()); 
+
     if (startTime) {
-      const elapsedTime = (Date.now() - startTime) / 60000; // Convert ms to minutes
+      const elapsedTime = (Date.now() - startTime) / 60000; 
       const wordsPerMinute = Math.round(words.length / elapsedTime);
-      alert(`Typing Speed: ${wordsPerMinute} WPM\nAccuracy: ${accuracy}%`);
+      setTimeout(() => {
+        alert(`Typing Speed: ${wordsPerMinute} WPM\nAccuracy: ${accuracy}%`);
+        window.location.reload();
+      }, 100); 
     }
   }
+
 
   return (
     <div className="h-screen flex flex-col items-center justify-center space-y-4">
