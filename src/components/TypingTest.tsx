@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const Text = "The quick brown fox jumps over the lazy dog.";
+const Text = "I knew that in spite of all the roses and kisses and restaurant dinners a man showered on a woman before he married her, what he secretly wanted when the wedding service ended was for her to flatten out underneath his feet like Mrs Willard's kitchen mat.";
 
 const TypingTest: React.FC = () => {
   const words = Text.split(" ");
@@ -8,6 +8,7 @@ const TypingTest: React.FC = () => {
   const [currentInput, setCurrentInput] = useState<string>("");
   const [typedWords, setTypedWords] = useState<string[]>(new Array(words.length).fill(""));
   const [accuracy, setAccuracy] = useState<number>(100);
+  const [wpm, setWpm] = useState<number | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -37,53 +38,70 @@ const TypingTest: React.FC = () => {
     updatedWords[currentWordIndex] = currentInput.trim();
     setTypedWords(updatedWords);
     setCurrentInput("");
-
+  
     if (currentWordIndex < words.length - 1) {
       setCurrentWordIndex(currentWordIndex + 1);
-    }
-    else {
-      finishTest()
+      calculateAccuracy(""); // Update WPM after each word
+    } else {
+      finishTest();
     }
   }
+  
 
   function calculateAccuracy(val: string) {
     const updatedWords = [...typedWords];
     updatedWords[currentWordIndex] = val.trim();
-
+  
     let totalTyped = updatedWords.join("").length;
     let totalCorrect = updatedWords
       .map((word, index) =>
-        index === words.length - 1 
-          ? (word === words[index] ? word.length : 0)
+        index === words.length - 1
+          ? word === words[index]
+            ? word.length
+            : 0
           : word.split("").filter((char, i) => char === words[index][i]).length
       )
       .reduce((acc, val) => acc + val, 0);
-
+  
     setAccuracy(totalTyped === 0 ? 100 : Math.round((totalCorrect / totalTyped) * 100));
-  }
-
-  function finishTest() {
-    const updatedWords = [...typedWords];
-    updatedWords[currentWordIndex] = currentInput.trim(); 
-    setTypedWords(updatedWords);
-
-    calculateAccuracy(currentInput.trim()); 
-
+  
     if (startTime) {
-      const elapsedTime = (Date.now() - startTime) / 60000; 
-      const wordsPerMinute = Math.round(words.length / elapsedTime);
-      setTimeout(() => {
-        alert(`Typing Speed: ${wordsPerMinute} WPM\nAccuracy: ${accuracy}%`);
-        window.location.reload();
-      }, 100); 
+      let elapsedTime = (Date.now() - startTime) / 60000; // Convert ms to minutes
+  
+      if (elapsedTime > 0) { // Ensure WPM updates correctly
+        const calculatedWpm = Math.round((currentWordIndex + 1) / elapsedTime);
+        setWpm(calculatedWpm);
+      }
     }
   }
-
+  
+  
+  function finishTest() {
+    const updatedWords = [...typedWords];
+    updatedWords[currentWordIndex] = currentInput.trim();
+    setTypedWords(updatedWords);
+  
+    if (startTime) {
+      let elapsedTime = (Date.now() - startTime) / 60000;
+  
+      if (elapsedTime < 0.2) elapsedTime = 0.2; // Prevent extremely high WPM
+  
+      const calculatedWpm = Math.round(words.length / elapsedTime);
+      setWpm(calculatedWpm);
+  
+      setTimeout(() => {
+        alert(`Typing Speed: ${calculatedWpm} WPM\nAccuracy: ${accuracy}%`);
+        window.location.reload();
+      }, 100);
+    }
+  }
+  
+  
 
   return (
     <div className="h-screen flex flex-col items-center justify-center space-y-4">
       <h2 className="text-2xl font-bold">Typing Test</h2>
-      <p className="text-lg">
+      <p className="text-lg w-5xl">
         {words.map((word, index) => (
           <span
             key={index}
@@ -107,8 +125,13 @@ const TypingTest: React.FC = () => {
         onKeyDown={handleKeyDown}
         className="border p-2 rounded"
       />
-      <p className="text-lg">Accuracy: {accuracy}%</p>
-      <button className="px-4 py-2 bg-blue-500 text-white rounded" onClick={() => window.location.reload()}>
+      <p className="text-lg">
+        Accuracy: {accuracy}% | WPM: {wpm !== null ? wpm : "--"}
+      </p>
+      <button
+        className="px-4 py-2 bg-blue-500 text-white rounded"
+        onClick={() => window.location.reload()}
+      >
         Reset
       </button>
     </div>
