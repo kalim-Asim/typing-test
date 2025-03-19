@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // Import navigation
 
 const socket = new WebSocket("ws://localhost:8080"); 
 
@@ -7,7 +8,7 @@ const WaitRoom = () => {
   const [roomId, setRoomId] = useState<string>("");
   const [username, setUsername] = useState<string>("");
   const [messages, setMessages] = useState<string[]>([]);
-
+  const navigate = useNavigate(); // Hook for navigation
   useEffect(() => {
     socket.onmessage = (event) => {
       setMessages((prev) => [...prev, event.data]); 
@@ -36,6 +37,7 @@ const WaitRoom = () => {
       if (response.ok) {
         alert(data.message);
         socket.send(JSON.stringify({ type: "join", payload: { roomId, username } }));
+        navigate("/typing-test");
       } else {
         alert(data.message);
       }
@@ -63,6 +65,7 @@ const WaitRoom = () => {
       if (response.ok) {
         alert(data.message);
         socket.send(JSON.stringify({ type: "create", payload: { roomId, username } }));
+        navigate("/typing-test");
       } else {
         alert(data.message);
       }

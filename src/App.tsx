@@ -1,14 +1,16 @@
-// import TypingTest from "./components/TypingTest"
-import WaitRoom from "./components/WaitRoom"
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import WaitRoom from "./components/WaitRoom";
+import TypingTest from "./components/TypingTest";  // Import your TypingTest component
 
 function App() {
-
   return (
-    <div>
-      <WaitRoom />
-        {/* <TypingTest /> */}
-    </div>
-  )
+    <Router>
+      <Routes>
+        <Route path="/" element={<WaitRoom />} />
+        <Route path="/typing-test" element={<TypingTest />} />
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;

@@ -1,112 +1,106 @@
+import express from "express";
+import http from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import mongoose from "mongoose";
-import dotenv from "dotenv";
-import { Room } from "./db";
-
-dotenv.config();
-
-const wss = new WebSocketServer({ port: 8080 });
-
-mongoose
-  .connect(process.env.MONGO_URI as string)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.log("MongoDB connection error:", err));
+import cors from "cors";
+import { Request, Response } from "express-serve-static-core";
+import connectDB from "./db";
+const app = express();
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
+connectDB();
+app.use(express.json());
+app.use(cors());
 
 interface User {
-  socket: WebSocket;
-  room: string;
-  username: string;
+    socket: WebSocket;
+    room: string;
+    username: string;
 }
 
-let allSockets: User[] = [];
+interface Room {
+    roomId: string;
+    users: User[];
+}
+
+let rooms: Room[] = [];
+
+// @ts-ignore
+app.post("/api/room/create", (req: Request, res: Response) => {
+    const { roomId, username } = req.body;
+
+    if (!roomId || !username) {
+        return res.status(400).json({ message: "Room ID and Username are required" });
+    }
+
+    // Check if room already exists
+    let existingRoom = rooms.find((room) => room.roomId === roomId);
+    if (existingRoom) {
+        return res.status(400).json({ 
+            message: "Room already exists. Choose another Room ID." 
+        });
+    }
+
+    // Create new room
+    rooms.push({ roomId, users: [] });
+    return res.json({ message: `Room ${roomId} created successfully` });
+});
+
+// @ts-ignore
+app.post("/api/room/join", (req: Request, res: Response) => {
+    const { roomId, username } = req.body;
+
+    if (!roomId || !username) {
+        return res.status(400).json({ message: "Room ID and Username are required" });
+    }
+
+    // Find the room
+    let room = rooms.find((r) => r.roomId === roomId);
+    if (!room) {
+        return res.status(404).json({ message: "Room not found" });
+    }
+
+    return res.json({ 
+        message: `Joined room ${roomId} successfully` 
+    });
+});
 
 wss.on("connection", (socket) => {
-  socket.on("message", async (message) => {
-    const parsedMessage = JSON.parse(message.toString());
+    socket.on("message", (message) => {
+        const parsedMessage = JSON.parse(message.toString());
 
-    if (parsedMessage.type === "join") {
-      const { roomId, username } = parsedMessage.payload;
+        if (parsedMessage.type === "join") {
+            const { roomId, username } = parsedMessage.payload;
 
-      let room = await Room.findOne({ roomId });
+            console.log(`${username} joined room ${roomId}`);
 
-      if (!room) {
-        socket.send(JSON.stringify({ error: "Room does not exist!" }));
-        return;
-      }
+            let room = rooms.find((r) => r.roomId === roomId);
+            if (!room) return;
 
-      console.log(`${username} joined room ${roomId}`);
+            room.users.push({ socket, room: roomId, username });
 
-      allSockets.push({ 
-        socket, 
-        room: roomId, 
-        username 
-      });
-
-      room.users.push({ 
-        username, 
-        socketId: socket.url 
-      });
-      await room.save();
-
-      // Notify all users in the room
-      allSockets.forEach((user) => {
-        if (user.room === roomId) {
-          user.socket.send(JSON.stringify({ 
-            message: `${username} joined room ${roomId}` 
-          }));
+            room.users.forEach((user) => {
+                user.socket.send(`${username} joined room ${roomId}`);
+            });
         }
-      });
-    }
 
-    if (parsedMessage.type === "create") {
-      const { roomId, username } = parsedMessage.payload;
+        if (parsedMessage.type === "race") {
+            let room = rooms.find((r) => r.users.some((u) => u.socket === socket));
+            if (!room) return;
 
-      let existingRoom = await Room.findOne({ roomId });
-
-      if (existingRoom) {
-        socket.send(JSON.stringify({ error: "Room already exists!" }));
-        return;
-      }
-
-      const newRoom = new Room({ roomId, users: [{ username, socketId: socket.url }] });
-      await newRoom.save();
-
-      console.log(`${username} created room ${roomId}`);
-
-      allSockets.push({ socket, room: roomId, username });
-
-      socket.send(JSON.stringify({ message: `Room ${roomId} created successfully!` }));
-    }
-
-    if (parsedMessage.type === "race") {
-      console.log("User wants to race");
-
-      let currentUser = allSockets.find((x) => x.socket === socket);
-      if (!currentUser) return;
-
-      let currentRoom = currentUser.room;
-
-      allSockets.forEach((user) => {
-        if (user.room === currentRoom) {
-          user.socket.send(JSON.stringify({ message: parsedMessage.payload.message }));
+            room.users.forEach((user) => {
+                user.socket.send(parsedMessage.payload.message);
+            });
         }
-      });
-    }
-  });
+    });
 
-  socket.on("close", async () => {
-    let userIndex = allSockets.findIndex((user) => user.socket === socket);
-    if (userIndex !== -1) {
-      const { room, username } = allSockets[userIndex];
-      allSockets.splice(userIndex, 1);
+    socket.on("close", () => {
+        rooms.forEach((room) => {
+            room.users = room.users.filter((user) => user.socket !== socket);
+        });
+    });
+});
 
-      await Room.updateOne({ roomId: room }, { $pull: { users: { username } } });
 
-      allSockets.forEach((user) => {
-        if (user.room === room) {
-          user.socket.send(JSON.stringify({ message: `${username} left the room.` }));
-        }
-      });
-    }
-  });
+server.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
 });
