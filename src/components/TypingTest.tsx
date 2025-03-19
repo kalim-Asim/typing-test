@@ -41,7 +41,7 @@ const TypingTest: React.FC = () => {
   
     if (currentWordIndex < words.length - 1) {
       setCurrentWordIndex(currentWordIndex + 1);
-      calculateAccuracy(""); // Update WPM after each word
+      calculateAccuracy(""); 
     } else {
       finishTest();
     }
