@@ -1,10 +1,12 @@
-import TypingTest from "./components/TypingTest"
+// import TypingTest from "./components/TypingTest"
+import WaitRoom from "./components/WaitRoom"
 
 function App() {
 
   return (
     <div>
-        <TypingTest />
+      <WaitRoom />
+        {/* <TypingTest /> */}
     </div>
   )
 }
