@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import WaitRoom from "./components/WaitRoom";
-import TypingTest from "./components/TypingTest";  // Import your TypingTest component
+import TypingTest from "./components/TypingTest";  
 
 function App() {
   return (

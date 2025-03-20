@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // Import navigation
+import { useNavigate } from "react-router-dom";
 
-const socket = new WebSocket("ws://localhost:8080"); 
+const socket = new WebSocket("ws://localhost:5000"); 
 
 const WaitRoom = () => {
   const [join, setJoin] = useState<boolean>(true);
   const [roomId, setRoomId] = useState<string>("");
   const [username, setUsername] = useState<string>("");
   const [messages, setMessages] = useState<string[]>([]);
-  const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate(); 
+  
   useEffect(() => {
     socket.onmessage = (event) => {
       setMessages((prev) => [...prev, event.data]); 
@@ -52,16 +53,16 @@ const WaitRoom = () => {
       alert("Please enter a Username and Room ID");
       return;
     }
-  
+
     try {
       const response = await fetch("http://localhost:5000/api/room/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomId, username }),
       });
-  
       const data = await response.json();
-  
+      console.log(data);
+
       if (response.ok) {
         alert(data.message);
         socket.send(JSON.stringify({ type: "create", payload: { roomId, username } }));
