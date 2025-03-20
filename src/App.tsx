@@ -12,7 +12,7 @@ function App() {
     <WebSocketProvider>  
       <Routes>
         <Route path="/" element={<WaitRoom />} />
-        <Route path="/typing-test" element={<TypingTest />} />
+        {/* <Route path="/typing-test" element={<TypingTest />} /> */}
       </Routes>
     </WebSocketProvider>
   </Router>

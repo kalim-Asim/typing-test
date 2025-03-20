@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWebSocket } from "../WebSocketContext";
 import { toast } from "react-toastify";
@@ -10,7 +10,7 @@ const WaitRoom = () => {
   const [roomId, setRoomId] = useState<string>("");
   const [username, setUsername] = useState<string>("");
   const navigate = useNavigate(); 
-  
+
   const notifyError = (message: string) => {
     toast.error(message, {
       position: "top-right",
@@ -43,7 +43,7 @@ const WaitRoom = () => {
       if (response.ok) {
         notifySuccess(data.message);
         socket?.send(JSON.stringify({ type: "join", payload: { roomId, username } }));
-        navigate("/typing-test");
+        navigate(`/typing-test/${roomId}`); // ✅ Navigate with room ID
       } else {
         notifyError(data.message);
       }
@@ -66,12 +66,11 @@ const WaitRoom = () => {
         body: JSON.stringify({ roomId, username }),
       });
       const data = await response.json();
-      console.log(data);
 
       if (response.ok) {
         notifySuccess(data.message);
         socket?.send(JSON.stringify({ type: "create", payload: { roomId, username } }));
-        navigate("/typing-test");
+        navigate(`/typing-test/${roomId}`); // ✅ Navigate with room ID
       } else {
         notifyError(data.message);
       }
@@ -131,9 +130,6 @@ const WaitRoom = () => {
         >
           {join ? "Jump In" : "Create Lobby"}
         </button>
-
-
-        
       </div>
     </div>
   );

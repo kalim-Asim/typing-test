@@ -18,8 +18,6 @@ const TypingTest: React.FC = () => {
   const socket = useWebSocket();
   const [messages, setMessages] = useState<string[]>([]);
 /*
-{"type":"userJoined","message":"dk created and joined the room","users":["dk"]}
-
 {"type":"userJoined",
 "message":"dk2 joined the room",
 "users":["dk","dk2"]}
