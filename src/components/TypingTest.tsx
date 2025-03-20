@@ -3,7 +3,6 @@ import { useWebSocket } from "../WebSocketContext"; // Import the hook
 
 const Text =
   "I knew that in spite of all the roses and kisses and restaurant dinners a man showered on a woman before he married her, what he secretly wanted when the wedding service ended was for her to flatten out underneath his feet like Mrs Willard's kitchen mat.";
-// const socket = new WebSocket("ws://localhost:5000");
 
 const TypingTest: React.FC = () => {
   const words = Text.split(" ");
@@ -14,6 +13,8 @@ const TypingTest: React.FC = () => {
   const [wpm, setWpm] = useState<number | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputChatRef = useRef<HTMLInputElement>(null);
+  const [chatInput, setChatInput] = useState<string>("");
   const socket = useWebSocket();
   const [messages, setMessages] = useState<string[]>([]);
 /*
@@ -53,7 +54,15 @@ const TypingTest: React.FC = () => {
     };
     socket?.send(JSON.stringify(message));
   };
-
+  const handleSendMessage = () => {
+    if (chatInput.trim() === "") return;
+  
+    const username = "User"; 
+    const formattedMessage = `${username}: ${chatInput}`;
+  
+    setMessages((prev) => [...prev, formattedMessage]); 
+    setChatInput(""); 
+  };
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
     if (startTime === null) setStartTime(Date.now());
@@ -126,10 +135,12 @@ const TypingTest: React.FC = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-6">
-      <h2 className="text-3xl font-extrabold mb-6 text-blue-400">Typing Test</h2>
-
-      <div className="bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-2xl">
+    <div className="h-screen flex items-center justify-center bg-gray-900 text-white p-6">
+    <div className="flex w-full max-w-7xl gap-x-6">
+      
+      {/* Typing Test Section */}
+      <div className="w-2/3 bg-gray-800 p-6 rounded-lg shadow-md">
+        <h2 className="text-3xl font-extrabold mb-6 text-blue-400">Typing Test</h2>
         <p className="text-lg text-gray-300 leading-relaxed">
           {words.map((word, index) => (
             <span
@@ -179,20 +190,46 @@ const TypingTest: React.FC = () => {
         </div>
       </div>
 
-      {/* Chat Messages */}
-      <div className="mt-6 bg-gray-800 p-4 rounded-lg h-40 overflow-auto w-full max-w-2xl">
+      {/* Live Messages Section */}
+      <div className="w-1/3 bg-gray-800 p-4 rounded-lg h-60 flex flex-col">
         <h3 className="font-semibold text-blue-400 mb-2">Live Messages</h3>
-        {messages.length > 0 ? (
-          messages.map((msg, index) => (
-            <p key={index} className="text-sm text-gray-300">
-              {msg}
-            </p>
-          ))
-        ) : (
-          <p className="text-sm text-gray-500">No messages yet</p>
-        )}
+
+        {/* Messages Container (Scrollable) */}
+        <div className="flex-1 overflow-auto space-y-2">
+          {messages.length > 0 ? (
+            messages.map((msg, index) => (
+              <p key={index} className="text-sm text-gray-300">
+                {msg}
+              </p>
+            ))
+          ) : (
+            <p className="text-sm text-gray-500">No messages yet</p>
+          )}
+        </div>
+
+        {/* Chat Input */}
+        <div className="mt-2 flex">
+          <input
+            ref={inputChatRef}
+            type="text"
+            className="flex-1 p-2 text-sm rounded-l-lg bg-gray-700 text-white outline-none"
+            placeholder="Type a message..."
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+          />
+          <button
+            className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-r-lg font-bold"
+            onClick={handleSendMessage}
+          >
+            Send
+          </button>
+        </div>
       </div>
+
     </div>
+  </div>
+
+
   );
 };
 

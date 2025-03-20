@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWebSocket } from "../WebSocketContext";
-
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const WaitRoom = () => {
   const socket = useWebSocket();
@@ -10,11 +11,23 @@ const WaitRoom = () => {
   const [username, setUsername] = useState<string>("");
   const navigate = useNavigate(); 
   
-  
+  const notifyError = (message: string) => {
+    toast.error(message, {
+      position: "top-right",
+      autoClose: 3000,
+    });
+  };
+
+  const notifySuccess = (message: string) => {
+    toast.success(message, {
+      position: "top-right",
+      autoClose: 3000,
+    });
+  };
 
   const joinLobby = async () => {
     if (!roomId || !username) {
-      alert("Please enter a Username and Room ID");
+      notifyError("Please enter a Username and Room ID");
       return;
     }
   
@@ -28,21 +41,21 @@ const WaitRoom = () => {
       const data = await response.json();
   
       if (response.ok) {
-        alert(data.message);
+        notifySuccess(data.message);
         socket?.send(JSON.stringify({ type: "join", payload: { roomId, username } }));
         navigate("/typing-test");
       } else {
-        alert(data.message);
+        notifyError(data.message);
       }
     } catch (error) {
       console.error("Error joining room:", error);
-      alert("An error occurred while joining the room.");
+      notifyError("An error occurred while joining the room.");
     }
   };
   
   const createLobby = async () => {
     if (!roomId || !username) {
-      alert("Please enter a Username and Room ID");
+      notifyError("Please enter a Username and Room ID");
       return;
     }
 
@@ -56,20 +69,17 @@ const WaitRoom = () => {
       console.log(data);
 
       if (response.ok) {
-        alert(data.message);
+        notifySuccess(data.message);
         socket?.send(JSON.stringify({ type: "create", payload: { roomId, username } }));
         navigate("/typing-test");
       } else {
-        alert(data.message);
+        notifyError(data.message);
       }
     } catch (error) {
       console.error("Error creating room:", error);
-      alert("An error occurred while creating the room.");
+      notifyError("An error occurred while creating the room.");
     }
   };
-  
-
-  
 
   return (
     <div className="h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 text-white">

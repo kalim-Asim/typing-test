@@ -10,7 +10,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setSocket(ws);
 
     return () => {
-      ws.close(); // Close the WebSocket connection when the component unmounts
+      ws.close(); 
     };
   }, []);
 
