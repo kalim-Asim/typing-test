@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useWebSocket } from "../WebSocketContext"; // Import the hook
+import { useParams } from "react-router-dom";
 
 const Text =
   "I knew that in spite of all the roses and kisses and restaurant dinners a man showered on a woman before he married her, what he secretly wanted when the wedding service ended was for her to flatten out underneath his feet like Mrs Willard's kitchen mat.";
 
 const TypingTest: React.FC = () => {
+  const { roomId } = useParams();
   const words = Text.split(" ");
   const [currentWordIndex, setCurrentWordIndex] = useState<number>(0);
   const [currentInput, setCurrentInput] = useState<string>("");
@@ -28,7 +30,10 @@ const TypingTest: React.FC = () => {
     socket.onmessage = (event) => {
       try {
         const parsedMessage = JSON.parse(event.data);
-        if (parsedMessage.message) {
+        if (parsedMessage.type === "chat") {
+          setMessages((prev) => [...prev, parsedMessage.message]);
+        }
+        else if (parsedMessage.message) {
           setMessages((prev) => [...prev, parsedMessage.message]); 
         }
       } catch (error) {
@@ -54,12 +59,21 @@ const TypingTest: React.FC = () => {
   };
   const handleSendMessage = () => {
     if (chatInput.trim() === "") return;
-  
-    const username = "User"; 
+
+    const username = "User"; // Replace with actual username from context/state
     const formattedMessage = `${username}: ${chatInput}`;
-  
-    setMessages((prev) => [...prev, formattedMessage]); 
-    setChatInput(""); 
+
+    // Send the message via WebSocket
+    if (!socket) return;
+    socket.send(
+      JSON.stringify({
+        type: "chat",
+        payload: { message: chatInput },
+      })
+    );
+
+    // Clear input field
+    setChatInput("");
   };
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
@@ -134,8 +148,11 @@ const TypingTest: React.FC = () => {
 
   return (
     <div className="h-screen flex items-center justify-center bg-gray-900 text-white p-6">
+      <div className="absolute top-0 left-0 w-full p-4 bg-gray-800 text-center">
+        <h1 className="text-3xl font-bold text-white">Welcome to Room {roomId}</h1>
+      </div>
     <div className="flex w-full max-w-7xl gap-x-6">
-      
+    
       {/* Typing Test Section */}
       <div className="w-2/3 bg-gray-800 p-6 rounded-lg shadow-md">
         <h2 className="text-3xl font-extrabold mb-6 text-blue-400">Typing Test</h2>
@@ -192,7 +209,7 @@ const TypingTest: React.FC = () => {
       <div className="w-1/3 bg-gray-800 p-4 rounded-lg h-60 flex flex-col">
         <h3 className="font-semibold text-blue-400 mb-2">Live Messages</h3>
 
-        {/* Messages Container (Scrollable) */}
+        {/* Messages Container */}
         <div className="flex-1 overflow-auto space-y-2">
           {messages.length > 0 ? (
             messages.map((msg, index) => (
@@ -223,11 +240,8 @@ const TypingTest: React.FC = () => {
           </button>
         </div>
       </div>
-
     </div>
   </div>
-
-
   );
 };
 

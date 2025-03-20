@@ -6,7 +6,7 @@ import { Room } from "./model"
 //@ts-ignore
 router.post("/create", async (req: Request, res: Response) => {
     const { roomId, username } = req.body;
-
+    console.log(roomId, username);
     if (!roomId || !username) {
         return res.status(400).json({ message: "Room ID and Username are required" });
     }

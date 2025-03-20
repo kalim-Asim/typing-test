@@ -4,19 +4,21 @@ import connectDB from "./db";
 import dotenv from "dotenv";
 import userRoutes from "./routes";
 import connectSocket from "./socket";
-dotenv.config();
-
+import http from "http";  
 const app = express();
+const server = http.createServer(app);
+dotenv.config();
 
 connectDB();
 
 app.use(express.json());
 app.use(cors());
-app.post("/api/room/", userRoutes);
+app.use("/api/room", userRoutes);
 
-connectSocket();
+ 
+connectSocket(server); 
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

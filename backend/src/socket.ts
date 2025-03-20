@@ -1,14 +1,11 @@
 import { WebSocketServer, WebSocket } from "ws";
-import express from 'express';
-const app = express();
-import http from "http";
-const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
+import { Server } from "http";
 const socketMap = new Map<string, WebSocket>(); // Store socketId -> WebSocket mappings
 import { Room } from "./model"
 import { v4 as uuidv4 } from "uuid"; // to generate unique IDs
 
-const connectSocket = () => {
+const connectSocket = (server: Server) => {
+  const wss = new WebSocketServer({ server });
   wss.on("connection", (socket) => {
       const socketId = uuidv4(); // Generate unique socket ID
       socketMap.set(socketId, socket); // Store WebSocket in map
@@ -87,6 +84,29 @@ const connectSocket = () => {
                   }
               });
           }
+
+          if (parsedMessage.type === "chat") {
+            let room = await Room.findOne({ "users.socketId": socketId });
+    
+            if (!room) return;
+    
+            const { message } = parsedMessage.payload;
+            const sender = room.users.find(user => user.socketId === socketId)?.username || "Unknown";
+    
+            // Broadcast chat message to all users in the room
+            room.users.forEach(user => {
+              const userSocket = socketMap.get(user.socketId);
+              if (userSocket) {
+                userSocket.send(
+                  JSON.stringify({
+                    type: "chat",
+                    message: `${sender}: ${message}`,
+                  })
+                );
+              }
+            });
+          }
+          
       });
 
       socket.on("close", async () => {
