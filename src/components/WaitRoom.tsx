@@ -1,24 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useWebSocket } from "../WebSocketContext";
 
-const socket = new WebSocket("ws://localhost:5000"); 
 
 const WaitRoom = () => {
+  const socket = useWebSocket();
   const [join, setJoin] = useState<boolean>(true);
   const [roomId, setRoomId] = useState<string>("");
   const [username, setUsername] = useState<string>("");
-  const [messages, setMessages] = useState<string[]>([]);
   const navigate = useNavigate(); 
   
-  useEffect(() => {
-    socket.onmessage = (event) => {
-      setMessages((prev) => [...prev, event.data]); 
-    };
-
-    return () => {
-      socket.onmessage = null; 
-    };
-  }, []);
+  
 
   const joinLobby = async () => {
     if (!roomId || !username) {
@@ -37,7 +29,7 @@ const WaitRoom = () => {
   
       if (response.ok) {
         alert(data.message);
-        socket.send(JSON.stringify({ type: "join", payload: { roomId, username } }));
+        socket?.send(JSON.stringify({ type: "join", payload: { roomId, username } }));
         navigate("/typing-test");
       } else {
         alert(data.message);
@@ -65,7 +57,7 @@ const WaitRoom = () => {
 
       if (response.ok) {
         alert(data.message);
-        socket.send(JSON.stringify({ type: "create", payload: { roomId, username } }));
+        socket?.send(JSON.stringify({ type: "create", payload: { roomId, username } }));
         navigate("/typing-test");
       } else {
         alert(data.message);
@@ -77,13 +69,7 @@ const WaitRoom = () => {
   };
   
 
-  const handleStartRace = () => {
-    const message = {
-      type: "race",
-      payload: { message: `${username} started the race!` },
-    };
-    socket.send(JSON.stringify(message));
-  };
+  
 
   return (
     <div className="h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 text-white">
@@ -137,23 +123,7 @@ const WaitRoom = () => {
         </button>
 
 
-        <button
-          onClick={handleStartRace}
-          className="w-full mt-4 py-2 bg-green-600 hover:bg-green-700 transition rounded-lg font-bold cursor-pointer"
-        >
-          Start Race
-        </button>
-
-        <div className="mt-4 bg-gray-800 p-3 rounded-lg h-40 overflow-auto">
-          <h3 className="font-semibold mb-2">Messages</h3>
-          {messages.length > 0 ? (
-            messages.map((msg, index) => (
-              <p key={index} className="text-sm text-gray-300">{msg}</p>
-            ))
-          ) : (
-            <p className="text-sm text-gray-500">No messages yet</p>
-          )}
-        </div>
+        
       </div>
     </div>
   );

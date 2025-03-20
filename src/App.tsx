@@ -1,16 +1,21 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import WaitRoom from "./components/WaitRoom";
 import TypingTest from "./components/TypingTest";  
+import { WebSocketProvider } from "./WebSocketContext"; 
 
 function App() {
   return (
     <Router>
+    <WebSocketProvider>  
       <Routes>
         <Route path="/" element={<WaitRoom />} />
         <Route path="/typing-test" element={<TypingTest />} />
       </Routes>
-    </Router>
+    </WebSocketProvider>
+  </Router>
+
   );
 }
+
 
 export default App;
