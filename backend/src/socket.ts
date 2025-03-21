@@ -1,18 +1,18 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "http";
-const socketMap = new Map<string, WebSocket>(); // Store socketId -> WebSocket mappings
+const socketMap = new Map<string, WebSocket>(); // store socketId -> WebSocket mappings
 import { Room } from "./model"
 import { v4 as uuidv4 } from "uuid"; // to generate unique IDs
 
 const connectSocket = (server: Server) => {
   const wss = new WebSocketServer({ server });
   wss.on("connection", (socket) => {
-      const socketId = uuidv4(); // Generate unique socket ID
-      socketMap.set(socketId, socket); // Store WebSocket in map
+      const socketId = uuidv4(); // generate unique socket ID
+      socketMap.set(socketId, socket); // store WebSocket in map
 
       socket.on("message", async (message) => {
           const parsedMessage = JSON.parse(message.toString());
-
+            console.log(" am i runnig ? ")
           if (parsedMessage.type === "join") {
               const { roomId, username } = parsedMessage.payload;
               
@@ -46,30 +46,25 @@ const connectSocket = (server: Server) => {
           if (parsedMessage.type === "create") {
               const { roomId, username } = parsedMessage.payload;
 
-              let room = await Room.findOne({ roomId });
-              if (!room) {
-                  socket.send(JSON.stringify({ type: "error", message: "Room not found" }));
+              let existingRoom = await Room.findOne({ roomId });
+              if (!existingRoom) {
+                  socket.send(JSON.stringify({ 
+                    type: "error", 
+                    message: "Room already exists" 
+                }));
                   return;
               }
+            let newRoom = new Room({
+                roomId,
+                users: [{username, socketId}],
+            });
+            await newRoom.save();
 
-              // Update socketId for the creator
-              const userIndex = room.users.findIndex(user => user.username === username);
-              if (userIndex !== -1) {
-                  room.users[userIndex].socketId = socketId;
-                  await room.save();
-              }
-
-              // Notify other users
-              room.users.forEach((user) => {
-                  const userSocket = socketMap.get(user.socketId);
-                  if (userSocket) {
-                      userSocket.send(JSON.stringify({
-                          type: "userJoined",
-                          message: `${username} created and joined the room`,
-                          users: room.users.map(u => u.username),
-                      }));
-                  }
-              });
+            socket.send(JSON.stringify({
+                type: "roomCreated",
+                message: `Room ${roomId} created successfully`,
+                users: [username],
+            }));
           }
 
           if (parsedMessage.type === "race") {
@@ -93,7 +88,6 @@ const connectSocket = (server: Server) => {
             const { message } = parsedMessage.payload;
             const sender = room.users.find(user => user.socketId === socketId)?.username || "Unknown";
     
-            // Broadcast chat message to all users in the room
             room.users.forEach(user => {
               const userSocket = socketMap.get(user.socketId);
               if (userSocket) {
