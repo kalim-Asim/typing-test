@@ -12,7 +12,7 @@ const connectSocket = (server: Server) => {
 
       socket.on("message", async (message) => {
           const parsedMessage = JSON.parse(message.toString());
-            console.log(" am i runnig ? ")
+
           if (parsedMessage.type === "join") {
               const { roomId, username } = parsedMessage.payload;
               
@@ -46,25 +46,28 @@ const connectSocket = (server: Server) => {
           if (parsedMessage.type === "create") {
               const { roomId, username } = parsedMessage.payload;
 
-              let existingRoom = await Room.findOne({ roomId });
-              if (!existingRoom) {
-                  socket.send(JSON.stringify({ 
-                    type: "error", 
-                    message: "Room already exists" 
-                }));
+              let room = await Room.findOne({ roomId });
+              if (!room) {
+                  socket.send(JSON.stringify({ type: "error", message: "Room not found" }));
                   return;
               }
-            let newRoom = new Room({
-                roomId,
-                users: [{username, socketId}],
-            });
-            await newRoom.save();
 
-            socket.send(JSON.stringify({
-                type: "roomCreated",
-                message: `Room ${roomId} created successfully`,
-                users: [username],
-            }));
+              const userIndex = room.users.findIndex(user => user.username === username);
+              if (userIndex !== -1) {
+                  room.users[userIndex].socketId = socketId;
+                  await room.save();
+              }
+
+              room.users.forEach((user) => {
+                  const userSocket = socketMap.get(user.socketId);
+                  if (userSocket) {
+                      userSocket.send(JSON.stringify({
+                          type: "userJoined",
+                          message: `${username} created and joined the room`,
+                          users: room.users.map(u => u.username),
+                      }));
+                  }
+              });
           }
 
           if (parsedMessage.type === "race") {
